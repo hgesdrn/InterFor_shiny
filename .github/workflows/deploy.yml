@@ -1,0 +1,46 @@
+name: Deploy to shinyapps.io
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v3
+
+    - name: 📦 Setup R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: 📚 Install system dependencies
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        extra-packages: |
+          any::renv
+          any::rsconnect
+        needs: |
+          shiny
+          leaflet
+          sf
+          dplyr
+          ggplot2
+          shinyWidgets
+          qs
+          tidyr
+
+    - name: 📁 Restore renv packages
+      run: |
+        R -e 'renv::restore(confirm = FALSE)'
+
+    - name: 🚀 Deploy to shinyapps.io
+      env:
+        SHINYAPPS_NAME: ${{ secrets.SHINYAPPS_NAME }}
+        SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
+        SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
+      run: |
+        R -e "rsconnect::setAccountInfo(name='${SHINYAPPS_NAME}', token='${SHINYAPPS_TOKEN}', secret='${SHINYAPPS_SECRET}')"
+        R -e "rsconnect::deployApp(appDir = '.', appName = 'InterFor_shiny', account = '${SHINYAPPS_NAME}')"
