@@ -53,10 +53,6 @@ Le déploiement de cette application est automatisé avec **GitHub Actions** à 
 
 Fichier de configuration : `.github/workflows/deploy.yml`
 
-Secrets GitHub utilisés :
-- `SHINYAPPS_TOKEN`
-- `SHINYAPPS_SECRET`
-
 ---
 
 ## 🖼️ Aperçu de l’application
