@@ -1,7 +1,5 @@
 # Application avec facet_wrap
 
-# --- InterFor_shiny (lecture depuis GitHub) ---
-
 library(shiny)
 library(leaflet)
 library(sf)
@@ -12,8 +10,10 @@ library(qs)
 library(tidyr)
 
 # 📅 Périodes
-periodes <- c("1910-1919","1920-1929","1930-1939","1940-1949","1950-1959",
-              "1960-1969","1970-1979","1980-1989","1990-1999","2000-2009",
+# periodes <- c("1910-1919","1920-1929","1930-1939","1940-1949","1950-1959",
+#               "1960-1969","1970-1979","1980-1989","1990-1999","2000-2009",
+#               "2010-2019","2020-2029")
+periodes <- c("1960-1969","1970-1979","1980-1989","1990-1999","2000-2009",
               "2010-2019","2020-2029")
 
 # Classe d'intervention
@@ -28,17 +28,17 @@ classe_labels <- setNames(
   nm = paste(names(classes_nom), "-", classes_nom)
 )
 
+
+
 terr_choix <- c("02371", "02471", "02571", "02751")
 
 # 🎨 Palette de couleurs pour CLASS
 palette_classes <- c("CP" = "#377eb8", "CR" = "#4daf4a", "EPC" = "#984ea3",
                      "PL" = "#e41a1c", "CT-CPR" = "#ff7f00")
 
-# 🔗 URL brute vers ton dépôt GitHub
-base_url <- "https://raw.githubusercontent.com/hgesdrn/InterFor_shiny/main/data/"
-
-# 📍 Lecture du fichier spatial UASag_s.qs
-uasag_sf <- qs::qread(url(paste0(base_url, "UASag_s.qs"))) %>%
+# 📍 Chemins
+chemin_periodes <- "data/periodes"
+uasag_sf <- qs::qread("data/UASag_s.qs") %>%
   st_make_valid() %>%
   st_transform(4326)
 
@@ -48,16 +48,11 @@ centroïdes_ua <- uasag_sf %>%
   select(TERRITOIRE, X, Y) %>%
   st_as_sf(coords = c("X", "Y"), crs = 4326)
 
-# 📦 Chargement des données par période via GitHub
+# 📦 Chargement des données par période
 data_par_periode <- lapply(periodes, function(p) {
   pp <- gsub("-", "_", p)
-  fichier_url <- paste0(base_url, "IntFor_", pp, ".qs")
-  tryCatch({
-    qs::qread(url(fichier_url)) %>% st_make_valid()
-  }, error = function(e) {
-    message("⚠️ Erreur lors de la lecture de ", fichier_url)
-    NULL
-  })
+  fichier <- file.path(chemin_periodes, paste0("IntFor_", pp, ".qs"))
+  if (file.exists(fichier)) qs::qread(fichier) else NULL
 })
 names(data_par_periode) <- periodes
 
@@ -202,7 +197,7 @@ server <- function(input, output, session) {
           addPolygons(
             ., data = df, group = "IntFor",
             fillColor = palette_classes[[input$classe]],
-            fillOpacity = 1, color = "#EBE436", weight = 1
+            fillOpacity = 1, color = "black", weight = 1
           )
         else .
       }
@@ -211,7 +206,7 @@ server <- function(input, output, session) {
   # Graphique (facet_wrap par territoire)
   output$barplot <- renderPlot({
     df <- donnees_aggregées() %>% mutate(Selection = Periode == input$periode)
-
+    
     ggplot(df, aes(x = Periode, y = Surface)) +
       geom_col(fill = palette_classes[input$classe]) +
       geom_text(data = df %>% filter(Selection),
@@ -234,7 +229,7 @@ server <- function(input, output, session) {
         plot.title = element_text(size = 14, face = "bold")
       )
   })
-
+  
 }
 
 # Run app
