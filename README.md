@@ -1,3 +1,5 @@
+![Deploy to shinyapps.io](https://github.com/hgesdrn/InterFor_shiny/actions/workflows/deploy.yml/badge.svg)
+
 # 🌲 InterFor_shiny – Interventions forestières Saguenay (1910–2029)
 
 **InterFor_shiny** est une application Shiny interactive permettant de visualiser les interventions forestières (ex. coupes, plantations, éclaircies) dans 4 unités d’aménagement du Saguenay, regroupées par périodes de 10 ans entre 1910 et 2029.
