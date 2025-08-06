@@ -43,4 +43,4 @@ jobs:
         SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
       run: |
         R -e "rsconnect::setAccountInfo(name='${SHINYAPPS_NAME}', token='${SHINYAPPS_TOKEN}', secret='${SHINYAPPS_SECRET}')"
-        R -e "rsconnect::deployApp(appDir = '.', appName = 'InterFor_shiny', account = '${SHINYAPPS_NAME}')"
+        R -e \"rsconnect::deployApp(appDir = '.', appName = 'InterFor_shiny', account = '${SHINYAPPS_NAME}', forceUpdate = TRUE)\"
