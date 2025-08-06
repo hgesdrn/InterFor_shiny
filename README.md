@@ -55,13 +55,6 @@ Le déploiement de cette application est automatisé avec **GitHub Actions** à 
 
 Fichier de configuration : `.github/workflows/deploy.yml`
 
----
-
-## 🖼️ Aperçu de l’application
-
-![aperçu](https://user-images.githubusercontent.com/INSERT/SCREENSHOT.png)
-
-> *(Tu peux remplacer ce lien avec une capture d’écran de ton app une fois qu’elle est en ligne)*
 
 ---
 
