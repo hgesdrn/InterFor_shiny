@@ -237,16 +237,17 @@ server <- function(input, output, session) {
   
   # Graphique (facet_wrap par territoire)
   output$barplot <- renderPlot({
-    df <- donnees_aggregées() %>% mutate(Selection = Periode == input$periode)
+    df <- donnees_aggregées() %>% mutate(Selection = Periode == input$periode,
+                                         TERRITOIRE_LABEL = paste("UA", TERRITOIRE))
     
     ggplot(df, aes(x = Periode, y = Surface)) +
       geom_col(fill = palette_classes[input$classe]) +
-      geom_text(data = df %>% filter(Selection),
-                aes(label = scales::comma(Surface, accuracy = 1)),
-                vjust = -0.5, color = "black", size = 4) +
-      facet_wrap(~ TERRITOIRE, ncol = 2) +
+      # geom_text(data = df %>% filter(Selection),
+      #           aes(label = scales::comma(Surface, accuracy = 1)),
+      #           vjust = -0.5, color = "black", size = 4) +
+      facet_wrap(~ TERRITOIRE_LABEL, ncol = 2) +
       scale_y_continuous(labels = scales::comma_format()) +
-      labs(title = "Superficie (ha) par type d'intervention",
+      labs(title = "Superficie (ha) par type d'intervention pour chaque unité d'aménagement.",
            y = "Superficie (ha)", x = "Période") +
       scale_x_discrete(limits = c("1960-1969", "1970-1979", "1980-1989",
                                   "1990-1999", "2000-2009", "2010-2019", "2020-2029")) +
