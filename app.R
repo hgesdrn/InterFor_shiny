@@ -1,10 +1,5 @@
-# Modifications principales :
-# ✅ Lecture unique de data/all_periodes.qs (déjà fusionné)
-# ✅ Retrait de st_make_valid() dans l’application (pré-traitement en amont)
+# Application avec facet_wrap
 
-# ------------------------
-# CHARGEMENT DES LIBRAIRIES
-# ------------------------
 library(shiny)
 library(leaflet)
 library(sf)
@@ -14,24 +9,9 @@ library(shinyWidgets)
 library(qs)
 library(tidyr)
 
-# ------------------------
-# PARAMÈTRES GLOBAUX
-# ------------------------
+
+# 🔗 Base URL pour GitHub brut
 base_url <- "https://raw.githubusercontent.com/hgesdrn/InterFor_shiny/main/data/"
-periodes <- c("1960-1969", "1970-1979", "1980-1989", "1990-1999", "2000-2009",
-              "2010-2019", "2020-2029")
-terr_choix <- c("02371", "02471", "02571", "02751")
-
-classes_coupe <- c("CP", "CR", "EPC", "PL", "CT-CPR")
-classes_nom <- c("CP" = "Coupe partielle",
-                 "CR" = "Coupe de récupération",
-                 "EPC" = "Éclaircie précommerciale",
-                 "PL" = "Plantation",
-                 "CT-CPR" = "Coupe protection régén./totale")
-classe_labels <- setNames(names(classes_nom), paste(names(classes_nom), "-", classes_nom))
-palette_classes <- c("CP" = "#377eb8", "CR" = "#4daf4a", "EPC" = "#984ea3",
-                     "PL" = "#e41a1c", "CT-CPR" = "#ff7f00")
-
 
 # Fonction pour importer qs à partir de github
 lire_qs_github <- function(url_github) {
@@ -41,33 +21,70 @@ lire_qs_github <- function(url_github) {
 }
 
 
-# ------------------------
-# IMPORTATION DES DONNÉES
-# ------------------------
-# Lecture unique du fichier fusionné .qs
-all_data <- lire_qs_github(paste0(base_url, "all_periodes.qs"))
+# 📅 Périodes
+# periodes <- c("1910-1919","1920-1929","1930-1939","1940-1949","1950-1959",
+#               "1960-1969","1970-1979","1980-1989","1990-1999","2000-2009",
+#               "2010-2019","2020-2029")
+periodes <- c("1960-1969","1970-1979","1980-1989","1990-1999","2000-2009",
+              "2010-2019","2020-2029")
 
-# Lecture de la couche UA simplifiée (sans st_make_valid)
+# Classe d'intervention
+classes_coupe <- c("CP", "CR", "EPC", "PL", "CT-CPR")
+classes_nom <- c("CP" = "Coupe partielle",
+                 "CR" = "Coupe de récupération",
+                 "EPC" = "Éclaircie précommerciale",
+                 "PL" = "Plantation",
+                 "CT-CPR" = "Coupe protection régèn./totale")
+
+classe_labels <- setNames(
+  object = names(classes_nom),
+  nm = paste(names(classes_nom), "-", classes_nom)
+)
+
+
+
+terr_choix <- c("02371", "02471", "02571", "02751")
+
+# 🎨 Palette de couleurs pour CLASS
+palette_classes <- c("CP" = "#377eb8", "CR" = "#4daf4a", "EPC" = "#984ea3",
+                     "PL" = "#e41a1c", "CT-CPR" = "#ff7f00")
+
+# 📍 Chemins
+# chemin_periodes <- "data/periodes"
+# uasag_sf <- qs::qread("data/UASag_s.qs") %>%
+# uasag_sf <- qs::qread(url(paste0(base_url, "UASag_s.qs"))) %>%
+#   st_make_valid() %>%
+#   st_transform(4326)
 uasag_sf <- lire_qs_github(paste0(base_url, "UASag_s.qs")) %>%
+  st_make_valid() %>%
   st_transform(4326)
 
-# Centroides pour labels
+# ⚙️ Centroides pour affichage des labels (à partir de X/Y)
 centroïdes_ua <- uasag_sf %>%
   st_drop_geometry() %>%
   select(TERRITOIRE, X, Y) %>%
   st_as_sf(coords = c("X", "Y"), crs = 4326)
 
-# ------------------------
-# TRANSFORMATION POUR INDEXATION RAPIDE
-# ------------------------
-# data_par_periode devient une liste indexée par période
-# On présumera que chaque élément de all_data contient la colonne "Periode"
-data_par_periode <- split(all_data, all_data$Periode)
+# 📦 Chargement des données par période
+# data_par_periode <- lapply(periodes, function(p) {
+#   pp <- gsub("-", "_", p)
+#   fichier <- file.path(chemin_periodes, paste0("IntFor_", pp, ".qs"))
+#   if (file.exists(fichier)) qs::qread(fichier) else NULL
+# })
 
-# ------------------------
-# SERVER (inchangé sauf appels optimisés)
-# ------------------------
-# (Suit l’ancien code mais sans st_make_valid et lecture plus rapide)
+data_par_periode <- lapply(periodes, function(p) {
+  pp <- gsub("-", "_", p)
+  url_file <- paste0(base_url, "periodes/IntFor_", pp, ".qs")
+  tryCatch({
+    lire_qs_github(url_file)
+  }, error = function(e) {
+    message("⚠️ Erreur lors de la lecture de ", url_file)
+    NULL
+  })
+})
+
+names(data_par_periode) <- periodes
+
 
 
 
@@ -220,17 +237,16 @@ server <- function(input, output, session) {
   
   # Graphique (facet_wrap par territoire)
   output$barplot <- renderPlot({
-    df <- donnees_aggregées() %>% mutate(Selection = Periode == input$periode,
-                                         TERRITOIRE_LABEL = paste("UA", TERRITOIRE))
+    df <- donnees_aggregées() %>% mutate(Selection = Periode == input$periode)
     
     ggplot(df, aes(x = Periode, y = Surface)) +
       geom_col(fill = palette_classes[input$classe]) +
-      # geom_text(data = df %>% filter(Selection),
-      #           aes(label = scales::comma(Surface, accuracy = 1)),
-      #           vjust = -0.5, color = "black", size = 4) +
-      facet_wrap(~ TERRITOIRE_LABEL, ncol = 2) +
+      geom_text(data = df %>% filter(Selection),
+                aes(label = scales::comma(Surface, accuracy = 1)),
+                vjust = -0.5, color = "black", size = 4) +
+      facet_wrap(~ TERRITOIRE, ncol = 2) +
       scale_y_continuous(labels = scales::comma_format()) +
-      labs(title = "Superficie (ha) par type d'intervention pour chaque unité d'aménagement.",
+      labs(title = "Superficie (ha) par type d'intervention",
            y = "Superficie (ha)", x = "Période") +
       scale_x_discrete(limits = c("1960-1969", "1970-1979", "1980-1989",
                                   "1990-1999", "2000-2009", "2010-2019", "2020-2029")) +
